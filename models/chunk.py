@@ -3,6 +3,7 @@ from enum import Enum
 
 
 class ChunkType(str, Enum):
+    TITLE = "title"
     BODY = "body"
     CAPTION = "caption"
     TABLE = "table"
