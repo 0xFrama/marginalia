@@ -16,6 +16,6 @@ class Chunk(BaseModel):
     source_file: str
     page_start: int
     page_end: int
-    section_title: str | None
+    section_title: str | None = None
     chunk_type: ChunkType
     chunk_index: int
