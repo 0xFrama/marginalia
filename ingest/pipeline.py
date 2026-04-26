@@ -19,6 +19,7 @@ def ingest_pdf(path: str) -> list[Chunk]:
     doc = converter.convert(path).document
     chunks = []
     current_section = None
+    doc_id = Path(path).name
 
     for item, level in doc.iterate_items():
         if item.label == "section_header":
@@ -26,7 +27,7 @@ def ingest_pdf(path: str) -> list[Chunk]:
             continue
         if item.label not in LABEL_TO_TYPE:
             continue
-        if item.label == LABEL_TO_TYPE["table"]:
+        if item.label == "table":
             text = item.export_to_markdown(doc)
         else:
             text = item.text
@@ -41,6 +42,8 @@ def ingest_pdf(path: str) -> list[Chunk]:
 
         chunks.append(
             Chunk(
+                doc_id=doc_id,
+                chunk_id=f"{doc_id}:{len(chunks):06d}",
                 text=text,
                 source_file=Path(path).name,
                 page_start=page_start,
