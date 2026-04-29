@@ -39,6 +39,7 @@ def test_chunk_record_serializes_cleanly(chunks):
     assert jchunk["doc_id"]
     assert isinstance(jchunk, dict)
 
+
 def test_export_to_jsonl_writes_one_line_per_chunk(tmp_path):
     fake_chunk_1 = Chunk(
         doc_id="name_1",
@@ -75,3 +76,7 @@ def test_export_to_jsonl_writes_one_line_per_chunk(tmp_path):
     assert isinstance(content[1], dict)
     assert content[0]["chunk_id"] == "name_1:000001"
     assert content[1]["chunk_id"] == "name_1:000002"
+
+
+def test_qdrant():
+    pass

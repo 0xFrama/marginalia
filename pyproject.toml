@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "docling>=2.90.0",
+    "chromadb>=0.6.3",
+    "sentence-transformers>=2.7.0",
+    "qdrant-client>=1.17.1",
 ]
 
 [tool.pytest.ini_options]
