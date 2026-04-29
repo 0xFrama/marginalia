@@ -1,8 +1,9 @@
 import uuid
 from typing import Any
 
+from models.chunk import ChunkType
 from models.embedding import EmbeddingRecord
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from models import Chunk, RetrievalHit
@@ -35,6 +36,12 @@ class QdrantStore:
         embeddings = [record.embedding for record in records]
         metadatas = [self._chunk_metadata(record.chunk) for record in records]
 
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="chunk_type",
+            field_schema=models.PayloadSchemaType.KEYWORD,
+        )
+
         self.client.upsert(
             collection_name=self.collection_name,
             points=[
@@ -43,11 +50,18 @@ class QdrantStore:
             ],
         )
 
-    def search(self, query_text: str, top_k: int = 5) -> list[RetrievalHit]:
+    def search(
+        self,
+        query_text: str,
+        chunk_types: list[ChunkType] | None = None,
+        top_k: int = 5,
+    ) -> list[RetrievalHit]:
         query_vector = embed_text(query_text, model=self.model)
+        q_filter = self._chunk_type_filter(chunk_types)
         results = self.client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
+            query_filter=q_filter,
             limit=top_k,
             with_payload=True,
             with_vectors=False,
@@ -77,6 +91,20 @@ class QdrantStore:
             return None
 
         return self._chunk_from_metadata(results[0].payload)
+
+    @staticmethod
+    def _chunk_type_filter(chunk_types: list[ChunkType] | None) -> models.Filter | None:
+        if not chunk_types:
+            return None
+
+        return models.Filter(
+            should=[
+                models.FieldCondition(
+                    key="chunk_type", match=models.MatchValue(value=chunk_type.value)
+                )
+                for chunk_type in chunk_types
+            ]
+        )
 
     @staticmethod
     def _chunk_from_metadata(metadata: dict) -> Chunk:

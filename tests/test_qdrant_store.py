@@ -90,3 +90,48 @@ def test_qdrant_store_gets_chunk_by_id(qdrant_store):
     assert stored_chunk is not None
     assert stored_chunk.chunk_id == "agri-guide.pdf:000003"
     assert stored_chunk.text == chunk.text
+
+
+def test_qdrant_store_filters_by_chunk_type(qdrant_store, monkeypatch):
+    body_chunk = Chunk(
+        doc_id="agri-guide.pdf",
+        chunk_id="agri-guide.pdf:000004",
+        text="Drip irrigation delivers water directly to crop roots.",
+        source_file="agri-guide.pdf",
+        page_start=4,
+        page_end=4,
+        section_title="Irrigation",
+        chunk_type=ChunkType.BODY,
+        chunk_index=4,
+    )
+    caption_chunk = Chunk(
+        doc_id="agri-guide.pdf",
+        chunk_id="agri-guide.pdf:000005",
+        text="Figure 2: Irrigation system layout.",
+        source_file="agri-guide.pdf",
+        page_start=5,
+        page_end=5,
+        section_title="Irrigation figures",
+        chunk_type=ChunkType.CAPTION,
+        chunk_index=5,
+    )
+    records = [
+        EmbeddingRecord(chunk=body_chunk, embedding=[1.0, 0.0, 0.0]),
+        EmbeddingRecord(chunk=caption_chunk, embedding=[1.0, 0.0, 0.0]),
+    ]
+
+    monkeypatch.setattr(
+        "index.qdrant_store.embed_text",
+        lambda query_text, model=None: [1.0, 0.0, 0.0],
+    )
+
+    qdrant_store.add_embeddings(records)
+
+    hits = qdrant_store.search(
+        "How does drip irrigation work?",
+        chunk_types=[ChunkType.BODY],
+        top_k=5,
+    )
+
+    assert hits
+    assert all(hit.chunk.chunk_type == ChunkType.BODY for hit in hits)
