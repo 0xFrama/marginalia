@@ -25,7 +25,7 @@ def main() -> None:
     print(f"Question: {result.question}\n")
     print("Answer:")
     print(result.answer)
-    print("\nSources:")
+    print("\nRetrieved evidence:")
     for source in result.sources:
         if source.page_start == source.page_end:
             page_label = f"page {source.page_start}"
