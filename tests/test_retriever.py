@@ -23,6 +23,22 @@ class FakeStore:
                 rank=1,
             )
         ]
+        self.low_score_hit = RetrievalHit(
+            query_text="How should tomatoes be irrigated?",
+            chunk=Chunk(
+                doc_id="agri-guide.pdf",
+                chunk_id="agri-guide.pdf:000002",
+                text="This weakly related chunk should be filtered out.",
+                source_file="agri-guide.pdf",
+                page_start=2,
+                page_end=2,
+                section_title="Background",
+                chunk_type=ChunkType.BODY,
+                chunk_index=2,
+            ),
+            score=0.4,
+            rank=2,
+        )
 
     def search(
         self,
@@ -73,3 +89,14 @@ def test_retriever_passes_custom_filters_and_top_k():
             "top_k": 3,
         }
     ]
+
+
+def test_retriever_filters_hits_below_min_score():
+    store = FakeStore()
+    store.hits = [store.hits[0], store.low_score_hit]
+    retriever = Retriever(store=store)
+
+    hits = retriever.retrieve("How should tomatoes be irrigated?", min_score=0.5)
+
+    assert len(hits) == 1
+    assert hits[0].score == 0.9

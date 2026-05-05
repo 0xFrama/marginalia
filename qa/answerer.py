@@ -8,8 +8,10 @@ class Answerer:
         self.retriever = retriever
         self.llm_client = llm_client
 
-    def answer(self, question: str, top_k: int = 3) -> AnswerResult:
-        hits = self.retriever.retrieve(question, top_k=top_k)
+    def answer(
+        self, question: str, top_k: int = 3, min_score: float | None = None
+    ) -> AnswerResult:
+        hits = self.retriever.retrieve(question, top_k=top_k, min_score=min_score)
         blocks = build_evidence_blocks(hits)
         evidence_context = format_evidence(blocks)
         if not evidence_context.strip():

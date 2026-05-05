@@ -64,6 +64,12 @@ Ask a question:
 uv run python -m expl.ask "What is attention?"
 ```
 
+Tune retrieval at the command line:
+
+```bash
+uv run python -m expl.ask "What is attention?" --top-k 5 --min-score 0.55
+```
+
 ## Project Structure
 
 ```text

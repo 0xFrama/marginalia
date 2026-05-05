@@ -1,5 +1,6 @@
+import argparse
 import os
-import sys
+
 from dotenv import load_dotenv
 
 from index import QdrantStore
@@ -9,18 +10,45 @@ from retrieval import Retriever
 load_dotenv()
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Ask a question over indexed PDFs.")
+    parser.add_argument(
+        "question",
+        nargs="?",
+        default="What is attention?",
+        help="Question to answer using retrieved evidence.",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=3,
+        help="Maximum number of retrieved evidence chunks to use.",
+    )
+    parser.add_argument(
+        "--min-score",
+        type=float,
+        default=None,
+        help="Optional minimum retrieval score for evidence chunks.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is not set.")
 
-    question = " ".join(sys.argv[1:]) or "What is attention?"
+    args = parse_args()
 
     store = QdrantStore()
     retriever = Retriever(store)
     llm_client = OpenAIService()
     answerer = Answerer(retriever=retriever, llm_client=llm_client)
 
-    result = answerer.answer(question)
+    result = answerer.answer(
+        args.question,
+        top_k=args.top_k,
+        min_score=args.min_score,
+    )
 
     print(f"Question: {result.question}\n")
     print("Answer:")
