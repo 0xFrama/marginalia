@@ -96,6 +96,24 @@ Nushell:
 { question: "What is attention?", top_k: 3, min_score: 0.55 } | to json | http post http://127.0.0.1:8000/ask --content-type application/json
 ```
 
+## Evaluation
+
+Qdrant must already contain the indexed PDF before running evaluation.
+
+Run retrieval evaluation:
+
+```bash
+uv run python -m eval.run_eval
+```
+
+The evaluator checks whether at least one expected chunk appears in the top-k retrieved results.
+
+Current local result on `attention.pdf`:
+
+```text
+recall@5: 1.00 (6/6)
+```
+
 ## Project Structure
 
 ```text
