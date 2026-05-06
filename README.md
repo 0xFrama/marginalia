@@ -70,6 +70,32 @@ Tune retrieval at the command line:
 uv run python -m expl.ask "What is attention?" --top-k 5 --min-score 0.55
 ```
 
+## API Usage
+
+Qdrant must be running before starting the API. The `.env` file must contain `OPENAI_API_KEY`.
+
+Start the FastAPI server:
+
+```bash
+uv run uvicorn api.app:app --reload
+```
+
+Index a local PDF through the API.
+
+Nushell:
+
+```nu
+{ pdf_path: "samples/attention.pdf" } | to json | http post http://127.0.0.1:8000/index --content-type application/json
+```
+
+Ask a question through the API.
+
+Nushell:
+
+```nu
+{ question: "What is attention?", top_k: 3, min_score: 0.55 } | to json | http post http://127.0.0.1:8000/ask --content-type application/json
+```
+
 ## Project Structure
 
 ```text
@@ -95,11 +121,12 @@ samples/       Local PDFs, gitignored
 - Grounded QA prompt builder
 - OpenAI-based answer generation
 - Manual end-to-end QA script
+- FastAPI endpoints for path-based indexing and question answering
 - Unit and integration tests for core layers
 
 ## Planned Work
 
-- FastAPI endpoints for indexing and asking questions
+- PDF file upload endpoint
 - Better retrieval controls, such as score thresholds and reranking
 - Source filtering so final output distinguishes cited sources from retrieved evidence
 - Conversation memory
