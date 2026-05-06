@@ -2,5 +2,25 @@
   {
     "question": "What is attention?",
     "expected_chunk_ids": ["attention.pdf:000027"]
+  },
+  {
+    "question": "What is self-attention?",
+    "expected_chunk_ids": ["attention.pdf:000019"]
+  },
+  {
+    "question": "What is multi-head attention?",
+    "expected_chunk_ids": ["attention.pdf:000037"]
+  },
+  {
+    "question": "What is scaled dot-product attention?",
+    "expected_chunk_ids": ["attention.pdf:000030"]
+  },
+  {
+    "question": "Why are positional encodings added to input embeddings?",
+    "expected_chunk_ids": ["attention.pdf:000049"]
+  },
+  {
+    "question": "What are the advantages of self-attention?",
+    "expected_chunk_ids": ["attention.pdf:000059", "attention.pdf:000056"]
   }
 ]
