@@ -1,6 +1,6 @@
 from models.answer import AnswerResult
 from qa.prompt import SYSTEM_PROMPT, build_qa_prompt
-from retrieval import Retriever, build_evidence_blocks, format_evidence
+from retrieval import CrossEncoderReranker, Retriever, build_evidence_blocks, format_evidence
 
 
 class Answerer:
@@ -9,9 +9,20 @@ class Answerer:
         self.llm_client = llm_client
 
     def answer(
-        self, question: str, top_k: int = 3, min_score: float | None = None
+        self,
+        question: str,
+        candidate_k: int = 10,
+        min_score: float | None = None,
+        reranker: CrossEncoderReranker | None = None,
+        top_k: int = 3,
     ) -> AnswerResult:
-        hits = self.retriever.retrieve(question, top_k=top_k, min_score=min_score)
+        hits = self.retriever.retrieve(
+            question,
+            candidate_k=candidate_k,
+            min_score=min_score,
+            reranker=reranker,
+            top_k=top_k,
+        )
         blocks = build_evidence_blocks(hits)
         evidence_context = format_evidence(blocks)
         if not evidence_context.strip():

@@ -11,6 +11,7 @@ def build_evidence_blocks(hits: list[RetrievalHit]) -> list[EvidenceBlock]:
             page_end=hit.chunk.page_end,
             section_title=hit.chunk.section_title,
             score=hit.score,
+            rerank_score=hit.rerank_score,
         )
         for hit in hits
     ]
@@ -28,10 +29,13 @@ def format_evidence(blocks: list[EvidenceBlock]) -> str:
         section_label = (
             f", section: {block.section_title}" if block.section_title else ""
         )
+        score_label = f", score: {round(block.score, 3)}"
+        if block.rerank_score is not None:
+            score_label += f", rerank_score: {round(block.rerank_score, 3)}"
 
         formatted_text.append(
             f"[{block.citation_id}] {block.source_file}, {page_label}"
-            f"{section_label}, score: {round(block.score, 3)}\n{block.text}"
+            f"{section_label}{score_label}\n{block.text}"
         )
 
     return "\n\n".join(formatted_text)

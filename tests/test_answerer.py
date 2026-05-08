@@ -8,13 +8,20 @@ class FakeRetriever:
         self.calls = []
 
     def retrieve(
-        self, question: str, top_k: int = 5, min_score: float | None = None
+        self,
+        question: str,
+        candidate_k: int = 10,
+        min_score: float | None = None,
+        reranker=None,
+        top_k: int = 5,
     ) -> list[RetrievalHit]:
         self.calls.append(
             {
                 "question": question,
+                "candidate_k": candidate_k,
                 "top_k": top_k,
                 "min_score": min_score,
+                "reranker": reranker,
             }
         )
         return self.hits
@@ -82,7 +89,15 @@ def test_answerer_calls_retriever_with_question():
 
     answerer.answer(question)
 
-    assert retriever.calls == [{"question": question, "top_k": 3, "min_score": None}]
+    assert retriever.calls == [
+        {
+            "question": question,
+            "candidate_k": 10,
+            "top_k": 3,
+            "min_score": None,
+            "reranker": None,
+        }
+    ]
 
 
 def test_answerer_passes_custom_top_k_to_retriever():
@@ -95,7 +110,37 @@ def test_answerer_passes_custom_top_k_to_retriever():
 
     answerer.answer(question, top_k=2)
 
-    assert retriever.calls == [{"question": question, "top_k": 2, "min_score": None}]
+    assert retriever.calls == [
+        {
+            "question": question,
+            "candidate_k": 10,
+            "top_k": 2,
+            "min_score": None,
+            "reranker": None,
+        }
+    ]
+
+
+def test_answerer_passes_candidate_k_and_reranker_to_retriever():
+    question = "How should tomatoes be irrigated?"
+    retriever = FakeRetriever([make_hit()])
+    reranker = object()
+    answerer = Answerer(
+        retriever=retriever,
+        llm_client=FakeLLMClient("Tomatoes need irrigation [1]."),
+    )
+
+    answerer.answer(question, candidate_k=8, top_k=2, reranker=reranker)
+
+    assert retriever.calls == [
+        {
+            "question": question,
+            "candidate_k": 8,
+            "top_k": 2,
+            "min_score": None,
+            "reranker": reranker,
+        }
+    ]
 
 
 def test_answerer_passes_min_score_to_retriever():
@@ -108,7 +153,15 @@ def test_answerer_passes_min_score_to_retriever():
 
     answerer.answer(question, min_score=0.55)
 
-    assert retriever.calls == [{"question": question, "top_k": 3, "min_score": 0.55}]
+    assert retriever.calls == [
+        {
+            "question": question,
+            "candidate_k": 10,
+            "top_k": 3,
+            "min_score": 0.55,
+            "reranker": None,
+        }
+    ]
 
 
 def test_answerer_sends_grounded_prompt_to_llm():

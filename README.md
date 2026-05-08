@@ -70,6 +70,12 @@ Tune retrieval at the command line:
 uv run python -m expl.ask "What is attention?" --top-k 5 --min-score 0.55
 ```
 
+Enable cross-encoder reranking:
+
+```bash
+uv run python -m expl.ask "What is attention?" --candidate-k 10 --top-k 3 --rerank
+```
+
 ## API Usage
 
 Qdrant must be running before starting the API. The `.env` file must contain `OPENAI_API_KEY`.
@@ -94,6 +100,14 @@ Nushell:
 
 ```nu
 { question: "What is attention?", top_k: 3, min_score: 0.55 } | to json | http post http://127.0.0.1:8000/ask --content-type application/json
+```
+
+Ask with reranking enabled.
+
+Nushell:
+
+```nu
+{ question: "What is attention?", candidate_k: 10, top_k: 3, use_reranker: true } | to json | http post http://127.0.0.1:8000/ask --content-type application/json
 ```
 
 ## Evaluation

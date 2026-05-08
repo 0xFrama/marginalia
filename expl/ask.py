@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 from index import QdrantStore
 from qa import Answerer, OpenAIService
-from retrieval import Retriever
+from retrieval import CrossEncoderReranker, Retriever
 
 load_dotenv()
 
@@ -25,10 +25,21 @@ def parse_args() -> argparse.Namespace:
         help="Maximum number of retrieved evidence chunks to use.",
     )
     parser.add_argument(
+        "--candidate-k",
+        type=int,
+        default=10,
+        help="Number of initial retrieval candidates to fetch before reranking.",
+    )
+    parser.add_argument(
         "--min-score",
         type=float,
         default=None,
         help="Optional minimum retrieval score for evidence chunks.",
+    )
+    parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Enable cross-encoder reranking before answer generation.",
     )
     return parser.parse_args()
 
@@ -42,12 +53,15 @@ def main() -> None:
     store = QdrantStore()
     retriever = Retriever(store)
     llm_client = OpenAIService()
+    reranker = CrossEncoderReranker() if args.rerank else None
     answerer = Answerer(retriever=retriever, llm_client=llm_client)
 
     result = answerer.answer(
         args.question,
+        candidate_k=args.candidate_k,
         top_k=args.top_k,
         min_score=args.min_score,
+        reranker=reranker,
     )
 
     print(f"Question: {result.question}\n")

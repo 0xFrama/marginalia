@@ -9,13 +9,20 @@ class FakeAnswerer:
         self.calls = []
 
     def answer(
-        self, question: str, top_k: int = 3, min_score: float | None = None
+        self,
+        question: str,
+        candidate_k: int = 10,
+        top_k: int = 3,
+        min_score: float | None = None,
+        reranker=None,
     ) -> AnswerResult:
         self.calls.append(
             {
                 "question": question,
+                "candidate_k": candidate_k,
                 "top_k": top_k,
                 "min_score": min_score,
+                "reranker": reranker,
             }
         )
         return AnswerResult(
@@ -46,7 +53,9 @@ def test_ask_endpoint_returns_answer_and_retrieved_evidence():
         json={
             "question": "What is attention?",
             "top_k": 5,
+            "candidate_k": 9,
             "min_score": 0.55,
+            "use_reranker": False,
         },
     )
 
@@ -63,10 +72,35 @@ def test_ask_endpoint_returns_answer_and_retrieved_evidence():
     assert fake_answerer.calls == [
         {
             "question": "What is attention?",
+            "candidate_k": 9,
             "top_k": 5,
             "min_score": 0.55,
+            "reranker": None,
         }
     ]
+
+
+def test_ask_endpoint_passes_reranker_when_requested(monkeypatch):
+    fake_answerer = FakeAnswerer()
+    fake_reranker = object()
+    app.dependency_overrides[get_answerer] = lambda: fake_answerer
+    monkeypatch.setattr("api.app.get_reranker", lambda: fake_reranker)
+    client = TestClient(app)
+
+    response = client.post(
+        "/ask",
+        json={
+            "question": "What is attention?",
+            "top_k": 3,
+            "candidate_k": 10,
+            "use_reranker": True,
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert fake_answerer.calls[0]["reranker"] is fake_reranker
 
 
 def test_index_endpoint_returns_indexing_result(monkeypatch):

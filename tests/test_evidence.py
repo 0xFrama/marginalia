@@ -17,6 +17,7 @@ def test_build_evidence_blocks_preserves_hit_metadata():
             chunk_index=27,
         ),
         score=0.6817968,
+        rerank_score=7.23,
         rank=1,
     )
 
@@ -30,6 +31,7 @@ def test_build_evidence_blocks_preserves_hit_metadata():
     assert blocks[0].page_end == 3
     assert blocks[0].section_title == "3.2 Attention"
     assert blocks[0].score == 0.6817968
+    assert blocks[0].rerank_score == 7.23
 
 
 def test_format_evidence_renders_citation_source_and_score():
@@ -56,7 +58,34 @@ def test_format_evidence_renders_citation_source_and_score():
     assert "[1] attention.pdf, page: 3" in formatted
     assert "section: 3.2 Attention" in formatted
     assert "score: 0.682" in formatted
+    assert "rerank_score" not in formatted
     assert hit.chunk.text in formatted
+
+
+def test_format_evidence_renders_rerank_score_when_available():
+    hit = RetrievalHit(
+        query_text="What is attention?",
+        chunk=Chunk(
+            doc_id="attention.pdf",
+            chunk_id="attention.pdf:000027",
+            text="An attention function maps a query and key-value pairs to an output.",
+            source_file="attention.pdf",
+            page_start=3,
+            page_end=3,
+            section_title="3.2 Attention",
+            chunk_type=ChunkType.BODY,
+            chunk_index=27,
+        ),
+        score=0.6817968,
+        rerank_score=7.23456,
+        rank=1,
+    )
+    blocks = build_evidence_blocks([hit])
+
+    formatted = format_evidence(blocks)
+
+    assert "score: 0.682" in formatted
+    assert "rerank_score: 7.235" in formatted
 
 
 def test_format_evidence_handles_page_ranges_and_missing_section():

@@ -9,3 +9,4 @@ class EvidenceBlock(BaseModel):
     page_end: int
     section_title: str | None
     score: float
+    rerank_score: float | None = None

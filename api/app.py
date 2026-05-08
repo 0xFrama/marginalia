@@ -6,7 +6,7 @@ from fastapi import Depends, FastAPI
 from api.schemas import AskRequest, AskResponse, IndexRequest
 from index import QdrantStore
 from qa import Answerer, OpenAIService
-from retrieval import Retriever
+from retrieval import CrossEncoderReranker, Retriever
 from models import IndexingResult
 from index.pipeline import index_pdf
 
@@ -27,6 +27,11 @@ def get_store() -> QdrantStore:
     return QdrantStore()
 
 
+@lru_cache(maxsize=1)
+def get_reranker() -> CrossEncoderReranker:
+    return CrossEncoderReranker()
+
+
 @app.post("/index", response_model=IndexingResult)
 async def index_document(
     request: IndexRequest, store: QdrantStore = Depends(get_store)
@@ -36,12 +41,15 @@ async def index_document(
 
 @app.post("/ask", response_model=AskResponse)
 async def ask(
-    request: AskRequest, answerer: Answerer = Depends(get_answerer)
+    request: AskRequest,
+    answerer: Answerer = Depends(get_answerer),
 ) -> AskResponse:
     result = answerer.answer(
         request.question,
+        candidate_k=request.candidate_k,
         top_k=request.top_k,
         min_score=request.min_score,
+        reranker=get_reranker() if request.use_reranker else None,
     )
     return AskResponse(
         question=result.question,
