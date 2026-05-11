@@ -39,6 +39,17 @@ class FakeAnswerer:
                     score=0.682,
                 )
             ],
+            cited_sources=[
+                EvidenceBlock(
+                    citation_id=1,
+                    text="An attention function maps a query and key-value pairs to an output.",
+                    source_file="attention.pdf",
+                    page_start=3,
+                    page_end=3,
+                    section_title="3.2 Attention",
+                    score=0.682,
+                )
+            ],
             evidence="[1] attention.pdf, page: 3\nAn attention function maps a query...",
         )
 
@@ -69,6 +80,8 @@ def test_ask_endpoint_returns_answer_and_retrieved_evidence():
     assert len(payload["retrieved_evidence"]) == 1
     assert payload["retrieved_evidence"][0]["citation_id"] == 1
     assert payload["retrieved_evidence"][0]["source_file"] == "attention.pdf"
+    assert len(payload["cited_sources"]) == 1
+    assert payload["cited_sources"][0]["citation_id"] == 1
     assert fake_answerer.calls == [
         {
             "question": "What is attention?",

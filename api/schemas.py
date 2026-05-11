@@ -20,3 +20,4 @@ class AskResponse(BaseModel):
     answer: str
     retrieved_evidence: list[EvidenceBlock]
     evidence_context: str
+    cited_sources: list[EvidenceBlock]

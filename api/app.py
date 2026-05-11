@@ -56,4 +56,5 @@ async def ask(
         answer=result.answer,
         retrieved_evidence=result.sources,
         evidence_context=result.evidence,
+        cited_sources=result.cited_sources,
     )

@@ -76,6 +76,7 @@ def test_answerer_returns_answer_result():
     assert result.answer == fake_answer
     assert len(result.sources) == 1
     assert result.sources[0].citation_id == 1
+    assert result.cited_sources == result.sources
     assert "Tomatoes need regular irrigation" in result.evidence
 
 
@@ -193,5 +194,6 @@ def test_answerer_handles_no_evidence():
     result = answerer.answer(question)
 
     assert result.sources == []
+    assert result.cited_sources == []
     assert "No evidence was retrieved." in result.evidence
     assert "No evidence was retrieved." in llm_client.calls[0]["user_prompt"]

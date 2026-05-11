@@ -67,6 +67,20 @@ def main() -> None:
     print(f"Question: {result.question}\n")
     print("Answer:")
     print(result.answer)
+    print("\nCited resources:")
+    for source in result.cited_sources:
+        if source.page_start == source.page_end:
+            page_label = f"page {source.page_start}"
+        else:
+            page_label = f"pages {source.page_start}-{source.page_end}"
+
+        section_label = (
+            f", section: {source.section_title}" if source.section_title else ""
+        )
+        print(
+            f"[{source.citation_id}] {source.source_file}, {page_label}"
+            f"{section_label}, score: {round(source.score, 3)}"
+        )
     print("\nRetrieved evidence:")
     for source in result.sources:
         if source.page_start == source.page_end:
