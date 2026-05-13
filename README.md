@@ -76,6 +76,27 @@ Enable cross-encoder reranking:
 uv run python -m expl.ask "What is attention?" --candidate-k 10 --top-k 3 --rerank
 ```
 
+Ask a follow-up question with request-level chat history:
+
+```json
+[
+  {
+    "role": "user",
+    "content": "What is attention?"
+  },
+  {
+    "role": "assistant",
+    "content": "Attention maps a query and key-value pairs to an output [1]."
+  }
+]
+```
+
+Save that JSON to a file such as `history.json`, then run:
+
+```bash
+uv run python -m expl.ask "Can you explain it more simply?" --history-file history.json
+```
+
 ## API Usage
 
 Qdrant must be running before starting the API. The `.env` file must contain `OPENAI_API_KEY`.
@@ -108,6 +129,26 @@ Nushell:
 
 ```nu
 { question: "What is attention?", candidate_k: 10, top_k: 3, use_reranker: true } | to json | http post http://127.0.0.1:8000/ask --content-type application/json
+```
+
+Ask a follow-up question with prior chat turns.
+
+Nushell:
+
+```nu
+{
+  question: "Can you explain it more simply?"
+  chat_history: [
+    {
+      role: "user"
+      content: "What is attention?"
+    }
+    {
+      role: "assistant"
+      content: "Attention maps a query and key-value pairs to an output [1]."
+    }
+  ]
+} | to json | http post http://127.0.0.1:8000/ask --content-type application/json
 ```
 
 ## Evaluation
@@ -150,8 +191,10 @@ samples/       Local PDFs, gitignored
 - Qdrant indexing and similarity search
 - Chunk-type filtering during retrieval
 - Evidence block formatting with citation IDs
+- Cited-source extraction from generated answers
 - Grounded QA prompt builder
 - OpenAI-based answer generation
+- Request-level conversation memory through `chat_history`
 - Manual end-to-end QA script
 - FastAPI endpoints for path-based indexing and question answering
 - Unit and integration tests for core layers
@@ -159,8 +202,6 @@ samples/       Local PDFs, gitignored
 ## Planned Work
 
 - PDF file upload endpoint
-- Better retrieval controls, such as score thresholds and reranking
-- Source filtering so final output distinguishes cited sources from retrieved evidence
-- Conversation memory
+- Persistent conversation memory beyond request-level chat history
 - Evaluation set for retrieval and answer quality
 - Documentation of architecture and design tradeoffs

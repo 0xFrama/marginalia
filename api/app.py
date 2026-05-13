@@ -50,6 +50,7 @@ async def ask(
         top_k=request.top_k,
         min_score=request.min_score,
         reranker=get_reranker() if request.use_reranker else None,
+        chat_history=request.chat_history,
     )
     return AskResponse(
         question=result.question,

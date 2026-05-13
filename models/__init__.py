@@ -4,3 +4,4 @@ from models.retrieval import RetrievalHit
 from models.indexing import IndexingResult
 from models.evidence import EvidenceBlock
 from models.answer import AnswerResult
+from models.chat import ChatMessage

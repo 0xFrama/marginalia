@@ -1,6 +1,7 @@
 from models.answer import AnswerResult
+from models.chat import ChatMessage
 from qa.citations import extract_citation_ids, filter_cited_sources
-from qa.prompt import SYSTEM_PROMPT, build_qa_prompt
+from qa.prompt import SYSTEM_PROMPT, build_qa_messages, build_qa_prompt
 from retrieval import (
     CrossEncoderReranker,
     Retriever,
@@ -21,6 +22,7 @@ class Answerer:
         min_score: float | None = None,
         reranker: CrossEncoderReranker | None = None,
         top_k: int = 3,
+        chat_history: list[ChatMessage] | None = None,
     ) -> AnswerResult:
         hits = self.retriever.retrieve(
             question,
@@ -33,8 +35,13 @@ class Answerer:
         evidence_context = format_evidence(blocks)
         if not evidence_context.strip():
             evidence_context = "No evidence was retrieved."
-        user_prompt = build_qa_prompt(question, evidence_context)
-        answer_text = self.llm_client.generate(SYSTEM_PROMPT, user_prompt)
+        messages = build_qa_messages(question, evidence_context, chat_history)
+
+        if hasattr(self.llm_client, "generate_messages"):
+            answer_text = self.llm_client.generate_messages(messages)
+        else:
+            user_prompt = build_qa_prompt(question, evidence_context, chat_history)
+            answer_text = self.llm_client.generate(SYSTEM_PROMPT, user_prompt)
         citation_ids = extract_citation_ids(answer=answer_text)
         cited_sources = filter_cited_sources(citation_ids, blocks)
         return AnswerResult(

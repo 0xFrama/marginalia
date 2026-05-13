@@ -1,9 +1,12 @@
 import argparse
+import json
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from index import QdrantStore
+from models import ChatMessage
 from qa import Answerer, OpenAIService
 from retrieval import CrossEncoderReranker, Retriever
 
@@ -41,7 +44,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable cross-encoder reranking before answer generation.",
     )
+    parser.add_argument(
+        "--history-file",
+        type=Path,
+        default=None,
+        help="Optional JSON file containing prior chat messages.",
+    )
     return parser.parse_args()
+
+
+def load_chat_history(path: Path | None) -> list[ChatMessage]:
+    if path is None:
+        return []
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return [ChatMessage.model_validate(message) for message in payload]
 
 
 def main() -> None:
@@ -54,6 +71,7 @@ def main() -> None:
     retriever = Retriever(store)
     llm_client = OpenAIService()
     reranker = CrossEncoderReranker() if args.rerank else None
+    chat_history = load_chat_history(args.history_file)
     answerer = Answerer(retriever=retriever, llm_client=llm_client)
 
     result = answerer.answer(
@@ -62,6 +80,7 @@ def main() -> None:
         top_k=args.top_k,
         min_score=args.min_score,
         reranker=reranker,
+        chat_history=chat_history,
     )
 
     print(f"Question: {result.question}\n")

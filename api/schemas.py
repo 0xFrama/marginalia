@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models import EvidenceBlock
+from models.chat import ChatMessage
 
 
 class AskRequest(BaseModel):
@@ -9,6 +10,7 @@ class AskRequest(BaseModel):
     candidate_k: int = 10
     min_score: float | None = None
     use_reranker: bool = False
+    chat_history: list[ChatMessage] = Field(default_factory=list)
 
 
 class IndexRequest(BaseModel):

@@ -1,5 +1,5 @@
 from qa import Answerer
-from models import AnswerResult, Chunk, ChunkType, RetrievalHit
+from models import AnswerResult, ChatMessage, Chunk, ChunkType, RetrievalHit
 
 
 class FakeRetriever:
@@ -31,6 +31,10 @@ class FakeLLMClient:
     def __init__(self, answer: str) -> None:
         self.answer = answer
         self.calls = []
+
+    def generate_messages(self, messages) -> str:
+        self.calls.append({"messages": messages})
+        return self.answer
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         self.calls.append(
@@ -177,10 +181,11 @@ def test_answerer_sends_grounded_prompt_to_llm():
 
     assert len(llm_client.calls) == 1
     call = llm_client.calls[0]
-    assert "provided evidence" in call["system_prompt"]
-    assert question in call["user_prompt"]
-    assert "Tomatoes need regular irrigation" in call["user_prompt"]
-    assert "[1]" in call["user_prompt"]
+    assert len(call["messages"]) == 2
+    assert "provided evidence" in call["messages"][0].content
+    assert question in call["messages"][1].content
+    assert "Tomatoes need regular irrigation" in call["messages"][1].content
+    assert "[1]" in call["messages"][1].content
 
 
 def test_answerer_handles_no_evidence():
@@ -196,4 +201,25 @@ def test_answerer_handles_no_evidence():
     assert result.sources == []
     assert result.cited_sources == []
     assert "No evidence was retrieved." in result.evidence
-    assert "No evidence was retrieved." in llm_client.calls[0]["user_prompt"]
+    assert "No evidence was retrieved." in llm_client.calls[0]["messages"][1].content
+
+
+def test_answerer_includes_chat_history_in_prompt():
+    question = "Can you explain it more simply?"
+    history = [
+        ChatMessage(role="user", content="What is attention?"),
+        ChatMessage(role="assistant", content="Attention maps queries to outputs [1]."),
+    ]
+    llm_client = FakeLLMClient("A simpler explanation [1].")
+    answerer = Answerer(
+        retriever=FakeRetriever([make_hit()]),
+        llm_client=llm_client,
+    )
+
+    answerer.answer(question, chat_history=history)
+
+    messages = llm_client.calls[0]["messages"]
+    assert len(messages) == 4
+    assert messages[1].content == "What is attention?"
+    assert messages[2].content == "Attention maps queries to outputs [1]."
+    assert question in messages[3].content

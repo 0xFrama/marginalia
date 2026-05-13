@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from api.app import app, get_answerer, get_store
+from models import ChatMessage
 from models import AnswerResult, EvidenceBlock, IndexingResult
 
 
@@ -15,6 +16,7 @@ class FakeAnswerer:
         top_k: int = 3,
         min_score: float | None = None,
         reranker=None,
+        chat_history=None,
     ) -> AnswerResult:
         self.calls.append(
             {
@@ -23,6 +25,7 @@ class FakeAnswerer:
                 "top_k": top_k,
                 "min_score": min_score,
                 "reranker": reranker,
+                "chat_history": chat_history,
             }
         )
         return AnswerResult(
@@ -89,6 +92,7 @@ def test_ask_endpoint_returns_answer_and_retrieved_evidence():
             "top_k": 5,
             "min_score": 0.55,
             "reranker": None,
+            "chat_history": [],
         }
     ]
 
@@ -114,6 +118,31 @@ def test_ask_endpoint_passes_reranker_when_requested(monkeypatch):
 
     assert response.status_code == 200
     assert fake_answerer.calls[0]["reranker"] is fake_reranker
+
+
+def test_ask_endpoint_passes_chat_history():
+    fake_answerer = FakeAnswerer()
+    app.dependency_overrides[get_answerer] = lambda: fake_answerer
+    client = TestClient(app)
+
+    response = client.post(
+        "/ask",
+        json={
+            "question": "Can you explain it more simply?",
+            "chat_history": [
+                {"role": "user", "content": "What is attention?"},
+                {"role": "assistant", "content": "Attention maps queries to outputs [1]."},
+            ],
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert fake_answerer.calls[0]["chat_history"] == [
+        ChatMessage(role="user", content="What is attention?"),
+        ChatMessage(role="assistant", content="Attention maps queries to outputs [1]."),
+    ]
 
 
 def test_index_endpoint_returns_indexing_result(monkeypatch):
