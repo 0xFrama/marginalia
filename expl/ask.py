@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from index import QdrantStore
 from models import ChatMessage
-from qa import Answerer, OpenAIService
+from qa import Answerer, GraphAnswerer, OpenAIService
 from retrieval import CrossEncoderReranker, Retriever
 
 load_dotenv()
@@ -50,6 +50,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional JSON file containing prior chat messages.",
     )
+    parser.add_argument(
+        "--use-graph",
+        action="store_true",
+        help="Use the LangGraph-based answer workflow instead of the direct answerer.",
+    )
     return parser.parse_args()
 
 
@@ -72,7 +77,10 @@ def main() -> None:
     llm_client = OpenAIService()
     reranker = CrossEncoderReranker() if args.rerank else None
     chat_history = load_chat_history(args.history_file)
-    answerer = Answerer(retriever=retriever, llm_client=llm_client)
+    if args.use_graph:
+        answerer = GraphAnswerer(retriever=retriever, llm_client=llm_client)
+    else:
+        answerer = Answerer(retriever=retriever, llm_client=llm_client)
 
     result = answerer.answer(
         args.question,
