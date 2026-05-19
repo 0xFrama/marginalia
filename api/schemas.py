@@ -19,6 +19,7 @@ class IndexRequest(BaseModel):
 
 class AskResponse(BaseModel):
     question: str
+    rewritten_query: str
     answer: str
     retrieved_evidence: list[EvidenceBlock]
     evidence_context: str

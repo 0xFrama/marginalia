@@ -28,12 +28,14 @@ class FakeRetriever:
 
 
 class FakeLLMClient:
-    def __init__(self, answer: str) -> None:
+    def __init__(self, answer: str | list[str]) -> None:
         self.answer = answer
         self.calls = []
 
     def generate_messages(self, messages) -> str:
         self.calls.append({"messages": messages})
+        if isinstance(self.answer, list):
+            return self.answer.pop(0)
         return self.answer
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
@@ -77,6 +79,7 @@ def test_answerer_returns_answer_result():
 
     assert isinstance(result, AnswerResult)
     assert result.question == question
+    assert result.rewritten_query == question
     assert result.answer == fake_answer
     assert len(result.sources) == 1
     assert result.sources[0].citation_id == 1
@@ -210,16 +213,26 @@ def test_answerer_includes_chat_history_in_prompt():
         ChatMessage(role="user", content="What is attention?"),
         ChatMessage(role="assistant", content="Attention maps queries to outputs [1]."),
     ]
-    llm_client = FakeLLMClient("A simpler explanation [1].")
+    llm_client = FakeLLMClient(
+        ["Explain attention in simpler terms.", "A simpler explanation [1]."]
+    )
     answerer = Answerer(
         retriever=FakeRetriever([make_hit()]),
         llm_client=llm_client,
     )
 
-    answerer.answer(question, chat_history=history)
+    result = answerer.answer(question, chat_history=history)
 
-    messages = llm_client.calls[0]["messages"]
-    assert len(messages) == 4
-    assert messages[1].content == "What is attention?"
-    assert messages[2].content == "Attention maps queries to outputs [1]."
-    assert question in messages[3].content
+    rewrite_messages = llm_client.calls[0]["messages"]
+    answer_messages = llm_client.calls[1]["messages"]
+
+    assert result.rewritten_query == "Explain attention in simpler terms."
+    assert len(rewrite_messages) == 4
+    assert rewrite_messages[1].content == "What is attention?"
+    assert rewrite_messages[2].content == "Attention maps queries to outputs [1]."
+    assert question in rewrite_messages[3].content
+
+    assert len(answer_messages) == 4
+    assert answer_messages[1].content == "What is attention?"
+    assert answer_messages[2].content == "Attention maps queries to outputs [1]."
+    assert question in answer_messages[3].content

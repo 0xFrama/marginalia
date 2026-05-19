@@ -2,6 +2,7 @@ from models.answer import AnswerResult
 from models.chat import ChatMessage
 from qa.citations import extract_citation_ids, filter_cited_sources
 from qa.prompt import SYSTEM_PROMPT, build_qa_messages, build_qa_prompt
+from qa.rewrite import rewrite_query
 from retrieval import (
     CrossEncoderReranker,
     Retriever,
@@ -24,8 +25,9 @@ class Answerer:
         top_k: int = 3,
         chat_history: list[ChatMessage] | None = None,
     ) -> AnswerResult:
+        rewritten_query = rewrite_query(question, chat_history, self.llm_client)
         hits = self.retriever.retrieve(
-            question,
+            rewritten_query,
             candidate_k=candidate_k,
             min_score=min_score,
             reranker=reranker,
@@ -46,6 +48,7 @@ class Answerer:
         cited_sources = filter_cited_sources(citation_ids, blocks)
         return AnswerResult(
             question=question,
+            rewritten_query=rewritten_query,
             answer=answer_text,
             sources=blocks,
             cited_sources=cited_sources,

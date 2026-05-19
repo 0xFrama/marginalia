@@ -1,0 +1,228 @@
+---
+title: "Marginalia"
+subtitle: "Grounded QA for Technical Documents"
+author: "Zeno F."
+date: today
+format:
+  revealjs:
+    theme: [default, marginalia-theme.scss]
+    transition: fade
+    transition-speed: slow
+    slide-number: c/t
+    progress: true
+    logo: ""
+    footer: "Marginalia · Interview Project"
+    highlight-style: github
+    code-block-bg: true
+    code-block-border-left: "#3E7F6A"
+    incremental: false
+    width: 1200
+    height: 700
+    margin: 0.08
+    auto-animate: true
+    auto-animate-easing: ease-in-out
+    auto-animate-duration: 0.6
+engine: markdown
+---
+
+## {background-color="#F6F2E9" .title-custom}
+
+::: {.title-block}
+::: {.title-eyebrow}
+Interview Project
+:::
+
+# Marginalia
+
+::: {.title-subtitle}
+Grounded question-answering for technical and scientific PDFs.
+:::
+
+::: {.title-meta}
+Zeno F. · Shortlisted Interview · 2026
+:::
+:::
+
+::: {.title-deco}
+:::
+
+---
+
+## The Problem {auto-animate=true}
+
+::: {.columns}
+::: {.column width="55%"}
+
+::: {.problem-block}
+**Technical PDFs contain useful knowledge.**  
+Querying them reliably is still difficult.
+:::
+
+::: {.fragment}
+::: {.pain-points}
+- documents have structure, not just plain text
+- keyword search misses semantic meaning
+- LLMs hallucinate without retrieved evidence
+- users need citations and page-level provenance
+:::
+:::
+
+:::
+::: {.column width="45%"}
+::: {.side-quote}
+**Design goal**
+
+Build a retrieval-augmented QA system that answers from document evidence and shows exactly where the answer came from.
+:::
+:::
+:::
+
+---
+
+## What is Marginalia? {auto-animate=true}
+
+::: {.definition-card}
+Marginalia is a **grounded RAG system** for technical and scientific documents, with structure-aware ingestion, retrieval quality controls, and citation-backed answers.
+:::
+
+::: {.columns .feature-row}
+::: {.column width="33%"}
+::: {.feature-pill}
+📄 **Ingest**  
+Docling parsing with metadata
+:::
+:::
+::: {.column width="33%"}
+::: {.feature-pill}
+🧠 **Retrieve**  
+Embeddings, Qdrant, reranking
+:::
+:::
+::: {.column width="33%"}
+::: {.feature-pill}
+💬 **Answer**  
+Evidence, citations, API
+:::
+:::
+:::
+
+---
+
+## Architecture {auto-animate=true}
+
+```text
+PDF
+-> Docling parsing
+-> structured chunks + metadata
+-> sentence-transformers embeddings
+-> Qdrant retrieval
+-> cross-encoder reranking
+-> evidence blocks
+-> OpenAI answer generation
+-> cited sources + API response
+```
+
+::: {.arch-note}
+FastAPI exposes `/index` and `/ask`. LangChain structures prompts and chat messages. LangGraph models the answer workflow as explicit nodes.
+:::
+
+---
+
+## Results & Benchmarks {auto-animate=true}
+
+::: {.columns}
+::: {.column width="50%"}
+::: {.metric-card}
+::: {.metric-number}
+1.00
+:::
+::: {.metric-label}
+Recall@5 on the current retrieval benchmark
+:::
+:::
+
+::: {.metric-card}
+::: {.metric-number}
+139
+:::
+::: {.metric-label}
+Chunks indexed from the sample paper
+:::
+:::
+:::
+
+::: {.column width="50%"}
+::: {.metric-card}
+::: {.metric-number}
+2
+:::
+::: {.metric-label}
+API endpoints: `/index` and `/ask`
+:::
+:::
+
+::: {.metric-card}
+::: {.metric-number}
+4
+:::
+::: {.metric-label}
+LangGraph nodes in the QA workflow
+:::
+:::
+:::
+:::
+
+---
+
+## What I Learned {auto-animate=true}
+
+::: {.columns}
+::: {.column width="50%"}
+::: {.learned-block .fragment}
+**Document structure matters**  
+Technical PDFs are not just text blobs. Preserving section, page, and chunk metadata is what makes grounded answers possible.
+:::
+
+::: {.learned-block .fragment}
+**Retrieval quality matters as much as the LLM**  
+Vector retrieval gets candidates quickly, but reranking and query rewriting noticeably improve the evidence quality passed to generation.
+:::
+:::
+::: {.column width="50%"}
+::: {.learned-block .fragment}
+**Framework boundaries matter**  
+I used LangChain for prompt orchestration and LangGraph for workflow structure, but kept retrieval and evaluation explicit in application code.
+:::
+
+::: {.learned-block .fragment}
+**Evaluation keeps the system honest**  
+I added retrieval evaluation with `recall@5` because fluent answers alone are not enough to judge a RAG pipeline.
+:::
+:::
+:::
+
+---
+
+## What's Next {auto-animate=true}
+
+::: {.roadmap}
+::: {.roadmap-item .done}
+✅ Ingestion, indexing, retrieval, grounded QA API
+:::
+::: {.roadmap-item .done}
+✅ Reranking, request-level memory, query rewriting
+:::
+::: {.roadmap-item .active}
+🔄 Broader evaluation beyond the current benchmark
+:::
+::: {.roadmap-item}
+⬜ Multi-document benchmarking and comparison
+:::
+::: {.roadmap-item}
+⬜ Richer LangGraph branching and fallback logic
+:::
+:::
+
+::: {.cta-block}
+Reliable LLM systems depend as much on retrieval, metadata, and evaluation as on the model itself.
+:::

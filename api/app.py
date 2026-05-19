@@ -54,6 +54,7 @@ async def ask(
     )
     return AskResponse(
         question=result.question,
+        rewritten_query=result.rewritten_query,
         answer=result.answer,
         retrieved_evidence=result.sources,
         evidence_context=result.evidence,

@@ -30,6 +30,7 @@ class FakeAnswerer:
         )
         return AnswerResult(
             question=question,
+            rewritten_query=question,
             answer="Attention maps queries and key-value pairs to outputs [1].",
             sources=[
                 EvidenceBlock(
@@ -78,6 +79,7 @@ def test_ask_endpoint_returns_answer_and_retrieved_evidence():
     assert response.status_code == 200
     payload = response.json()
     assert payload["question"] == "What is attention?"
+    assert payload["rewritten_query"] == "What is attention?"
     assert payload["answer"] == "Attention maps queries and key-value pairs to outputs [1]."
     assert payload["evidence_context"].startswith("[1] attention.pdf")
     assert len(payload["retrieved_evidence"]) == 1

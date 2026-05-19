@@ -92,6 +92,7 @@ def main() -> None:
     )
 
     print(f"Question: {result.question}\n")
+    print(f"Rewritten query: {result.rewritten_query}\n")
     print("Answer:")
     print(result.answer)
     print("\nCited resources:")
