@@ -15,6 +15,7 @@ dependencies = [
     "uvicorn>=0.30.0",
     "langchain-core>=1.4.0",
     "langgraph>=1.2.0",
+    "mcp[cli]>=1.27.1",
 ]
 
 [tool.pytest.ini_options]

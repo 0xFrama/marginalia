@@ -1,6 +1,6 @@
 ---
 title: "Marginalia"
-subtitle: "Grounded QA for Technical Documents"
+subtitle: "Context-Aware RAG for Agricultural Decision Support"
 author: "Zeno F."
 date: today
 format:
@@ -35,7 +35,7 @@ Interview Project
 # Marginalia
 
 ::: {.title-subtitle}
-Grounded question-answering for technical and scientific PDFs.
+Grounding LLM answers in domain knowledge and real-world data for agricultural decision support.
 :::
 
 ::: {.title-meta}
@@ -54,25 +54,25 @@ Zeno F. · Shortlisted Interview · 2026
 ::: {.column width="55%"}
 
 ::: {.problem-block}
-**Technical PDFs contain useful knowledge.**  
-Querying them reliably is still difficult.
+**Agricultural decisions need grounded, context-aware answers.**
+Generic LLMs are not enough.
 :::
 
 ::: {.fragment}
 ::: {.pain-points}
-- documents have structure, not just plain text
-- keyword search misses semantic meaning
-- LLMs hallucinate without retrieved evidence
-- users need citations and page-level provenance
+- LLMs hallucinate on domain-specific agronomic questions
+- pure RAG answers "what do the documents say" — not "what should I do *today*"
+- real decisions depend on both validated knowledge *and* real-time conditions
+- outputs need traceability: sources, pages, citations
 :::
 :::
 
 :::
 ::: {.column width="45%"}
 ::: {.side-quote}
-**Design goal**
+*"The rush to adopt AI without grounding it in validated science, local context, and institutional workflows often results in systems that are impressive in demonstrations but limited in field impact."*
 
-Build a retrieval-augmented QA system that answers from document evidence and shows exactly where the answer came from.
+— Shaik N. Meera, *From RAG and AI Agents to Context-Aware Agricultural Intelligence Systems*, LinkedIn, 2025
 :::
 :::
 :::
@@ -82,26 +82,26 @@ Build a retrieval-augmented QA system that answers from document evidence and sh
 ## What is Marginalia? {auto-animate=true}
 
 ::: {.definition-card}
-Marginalia is a **grounded RAG system** for technical and scientific documents, with structure-aware ingestion, retrieval quality controls, and citation-backed answers.
+Marginalia is a **context-aware RAG agent** for agricultural knowledge bases. It combines structure-aware document ingestion, semantic retrieval, and a LangGraph agent that decides when to call external tools — starting with real-time weather data.
 :::
 
 ::: {.columns .feature-row}
 ::: {.column width="33%"}
 ::: {.feature-pill}
-📄 **Ingest**  
+📄 **Ingest**
 Docling parsing with metadata
 :::
 :::
 ::: {.column width="33%"}
 ::: {.feature-pill}
-🧠 **Retrieve**  
+🧠 **Retrieve**
 Embeddings, Qdrant, reranking
 :::
 :::
 ::: {.column width="33%"}
 ::: {.feature-pill}
-💬 **Answer**  
-Evidence, citations, API
+🤖 **Agent**
+LangGraph, tool routing, citations
 :::
 :::
 :::
@@ -112,18 +112,59 @@ Evidence, citations, API
 
 ```text
 PDF
--> Docling parsing
--> structured chunks + metadata
--> sentence-transformers embeddings
--> Qdrant retrieval
--> cross-encoder reranking
--> evidence blocks
--> OpenAI answer generation
--> cited sources + API response
+→ Docling parsing
+→ structured chunks + metadata (page, section, chunk type)
+→ sentence-transformers embeddings
+→ Qdrant vector store
+
+question
+→ rewrite (query reformulation with chat history)
+→ tool_router  ──── does this need live data? ────┐
+                                                   ▼
+                               YES → weather_tool (Open-Meteo API)
+                                                   │
+                               NO ─────────────────┘
+→ retrieve (Qdrant + cross-encoder reranking)
+→ evidence blocks
+→ answer (OpenAI, evidence + tool result as context)
+→ cited sources
 ```
 
 ::: {.arch-note}
-FastAPI exposes `/index` and `/ask`. LangChain structures prompts and chat messages. LangGraph models the answer workflow as explicit nodes.
+FastAPI exposes `/index` and `/ask`. The agent decides at runtime whether to call an external tool — the routing decision is made by the LLM itself, not by keyword matching.
+:::
+
+---
+
+## Live Demo {auto-animate=true}
+
+::: {.columns}
+::: {.column width="50%"}
+::: {.definition-card}
+**Document question**
+
+*"What are best practices for drip irrigation?"*
+
+→ tool router: **NO**
+→ retrieves from agricultural knowledge base
+→ grounded answer with citations
+:::
+:::
+::: {.column width="50%"}
+::: {.definition-card}
+**Weather-dependent question**
+
+*"What irrigation should I plan given this week's forecast?"*
+
+→ tool router: **YES**
+→ calls Open-Meteo API (7-day forecast)
+→ answer combines document knowledge + live weather data
+:::
+:::
+:::
+
+::: {.arch-note}
+The agent uses the LLM to decide which path to take — this is what makes it an agent rather than a fixed pipeline.
 :::
 
 ---
@@ -137,16 +178,16 @@ FastAPI exposes `/index` and `/ask`. LangChain structures prompts and chat messa
 1.00
 :::
 ::: {.metric-label}
-Recall@5 on the current retrieval benchmark
+Recall@5 on the retrieval benchmark
 :::
 :::
 
 ::: {.metric-card}
 ::: {.metric-number}
-139
+6
 :::
 ::: {.metric-label}
-Chunks indexed from the sample paper
+LangGraph nodes in the QA agent workflow
 :::
 :::
 :::
@@ -163,10 +204,10 @@ API endpoints: `/index` and `/ask`
 
 ::: {.metric-card}
 ::: {.metric-number}
-4
+1
 :::
 ::: {.metric-label}
-LangGraph nodes in the QA workflow
+External tool integrated: Open-Meteo weather API
 :::
 :::
 :::
@@ -179,24 +220,24 @@ LangGraph nodes in the QA workflow
 ::: {.columns}
 ::: {.column width="50%"}
 ::: {.learned-block .fragment}
-**Document structure matters**  
-Technical PDFs are not just text blobs. Preserving section, page, and chunk metadata is what makes grounded answers possible.
+**Document structure matters**
+Preserving section, page, and chunk-type metadata is what makes grounded, traceable answers possible.
 :::
 
 ::: {.learned-block .fragment}
-**Retrieval quality matters as much as the LLM**  
-Vector retrieval gets candidates quickly, but reranking and query rewriting noticeably improve the evidence quality passed to generation.
+**Retrieval quality matters as much as the LLM**
+Query rewriting and cross-encoder reranking noticeably improve evidence quality before generation.
 :::
 :::
 ::: {.column width="50%"}
 ::: {.learned-block .fragment}
-**Framework boundaries matter**  
-I used LangChain for prompt orchestration and LangGraph for workflow structure, but kept retrieval and evaluation explicit in application code.
+**Agents need explicit routing logic**
+A fixed pipeline cannot adapt to different question types. Explicit tool-routing nodes make the decision transparent and testable.
 :::
 
 ::: {.learned-block .fragment}
-**Evaluation keeps the system honest**  
-I added retrieval evaluation with `recall@5` because fluent answers alone are not enough to judge a RAG pipeline.
+**Evaluation keeps the system honest**
+Fluent answers alone are not enough to judge a RAG pipeline — `recall@5` shows whether the right chunks are actually being retrieved.
 :::
 :::
 :::
@@ -210,19 +251,22 @@ I added retrieval evaluation with `recall@5` because fluent answers alone are no
 ✅ Ingestion, indexing, retrieval, grounded QA API
 :::
 ::: {.roadmap-item .done}
-✅ Reranking, request-level memory, query rewriting
+✅ Reranking, query rewriting, request-level memory
+:::
+::: {.roadmap-item .done}
+✅ LangGraph agent with weather tool routing
 :::
 ::: {.roadmap-item .active}
-🔄 Broader evaluation beyond the current benchmark
+🔄 Expose as an MCP server — any LLM agent can use this RAG as a tool
 :::
 ::: {.roadmap-item}
-⬜ Multi-document benchmarking and comparison
+⬜ Additional tools: crop disease lookup, soil condition APIs
 :::
 ::: {.roadmap-item}
-⬜ Richer LangGraph branching and fallback logic
+⬜ Persistent conversation memory across sessions
 :::
 :::
 
 ::: {.cta-block}
-Reliable LLM systems depend as much on retrieval, metadata, and evaluation as on the model itself.
+The same architecture scales to any agricultural knowledge base — swap the documents, extend the tools.
 :::

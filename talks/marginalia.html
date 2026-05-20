@@ -198,7 +198,7 @@
 
 <section id="title-slide" class="quarto-title-block center">
   <h1 class="title">Marginalia</h1>
-  <p class="subtitle">Grounded QA for Technical Documents</p>
+  <p class="subtitle">Context-Aware RAG for Agricultural Decision Support</p>
 
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
@@ -219,7 +219,7 @@ Zeno F.
 <section id="marginalia" class="title-slide slide level1 center">
 <h1>Marginalia</h1>
 <div class="title-subtitle">
-<p>Grounded question-answering for technical and scientific PDFs.</p>
+<p>Grounding LLM answers in domain knowledge and real-world data for agricultural decision support.</p>
 </div>
 <div class="title-meta">
 <p>Zeno F. · Shortlisted Interview · 2026</p>
@@ -236,62 +236,86 @@ Zeno F.
 <div class="columns">
 <div class="column" style="width:55%;">
 <div class="problem-block">
-<p><strong>Technical PDFs contain useful knowledge.</strong><br>
-Querying them reliably is still difficult.</p>
+<p><strong>Agricultural decisions need grounded, context-aware answers.</strong> Generic LLMs are not enough.</p>
 </div>
 <div class="fragment">
 <div class="pain-points">
 <ul>
-<li>documents have structure, not just plain text</li>
-<li>keyword search misses semantic meaning</li>
-<li>LLMs hallucinate without retrieved evidence</li>
-<li>users need citations and page-level provenance</li>
+<li>LLMs hallucinate on domain-specific agronomic questions</li>
+<li>pure RAG answers “what do the documents say” — not “what should I do <em>today</em>”</li>
+<li>real decisions depend on both validated knowledge <em>and</em> real-time conditions</li>
+<li>outputs need traceability: sources, pages, citations</li>
 </ul>
 </div>
 </div>
 </div><div class="column" style="width:45%;">
 <div class="side-quote">
-<p><strong>Design goal</strong></p>
-<p>Build a retrieval-augmented QA system that answers from document evidence and shows exactly where the answer came from.</p>
+<p><em>“The rush to adopt AI without grounding it in validated science, local context, and institutional workflows often results in systems that are impressive in demonstrations but limited in field impact.”</em></p>
+<p>— Shaik N. Meera, <em>From RAG and AI Agents to Context-Aware Agricultural Intelligence Systems</em>, LinkedIn, 2025</p>
 </div>
 </div></div>
 </section>
 <section id="what-is-marginalia" class="slide level2" data-auto-animate="true">
 <h2 data-id="quarto-animate-title">What is Marginalia?</h2>
 <div class="definition-card">
-<p>Marginalia is a <strong>grounded RAG system</strong> for technical and scientific documents, with structure-aware ingestion, retrieval quality controls, and citation-backed answers.</p>
+<p>Marginalia is a <strong>context-aware RAG agent</strong> for agricultural knowledge bases. It combines structure-aware document ingestion, semantic retrieval, and a LangGraph agent that decides when to call external tools — starting with real-time weather data.</p>
 </div>
 <div class="columns feature-row">
 <div class="column" style="width:33%;">
 <div class="feature-pill">
-<p>📄 <strong>Ingest</strong><br>
-Docling parsing with metadata</p>
+<p>📄 <strong>Ingest</strong> Docling parsing with metadata</p>
 </div>
 </div><div class="column" style="width:33%;">
 <div class="feature-pill">
-<p>🧠 <strong>Retrieve</strong><br>
-Embeddings, Qdrant, reranking</p>
+<p>🧠 <strong>Retrieve</strong> Embeddings, Qdrant, reranking</p>
 </div>
 </div><div class="column" style="width:33%;">
 <div class="feature-pill">
-<p>💬 <strong>Answer</strong><br>
-Evidence, citations, API</p>
+<p>🤖 <strong>Agent</strong> LangGraph, tool routing, citations</p>
 </div>
 </div></div>
 </section>
 <section id="architecture" class="slide level2" data-auto-animate="true">
 <h2 data-id="quarto-animate-title">Architecture</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource text number-lines code-with-copy" data-id="quarto-animate-code"><code class="sourceCode hljs"><span id="cb1-1" class="hljs-ln-code"><a href=""></a>PDF</span>
-<span id="cb1-2" class="hljs-ln-code"><a href=""></a>-&gt; Docling parsing</span>
-<span id="cb1-3" class="hljs-ln-code"><a href=""></a>-&gt; structured chunks + metadata</span>
-<span id="cb1-4" class="hljs-ln-code"><a href=""></a>-&gt; sentence-transformers embeddings</span>
-<span id="cb1-5" class="hljs-ln-code"><a href=""></a>-&gt; Qdrant retrieval</span>
-<span id="cb1-6" class="hljs-ln-code"><a href=""></a>-&gt; cross-encoder reranking</span>
-<span id="cb1-7" class="hljs-ln-code"><a href=""></a>-&gt; evidence blocks</span>
-<span id="cb1-8" class="hljs-ln-code"><a href=""></a>-&gt; OpenAI answer generation</span>
-<span id="cb1-9" class="hljs-ln-code"><a href=""></a>-&gt; cited sources + API response</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-2" class="hljs-ln-code"><a href=""></a>→ Docling parsing</span>
+<span id="cb1-3" class="hljs-ln-code"><a href=""></a>→ structured chunks + metadata (page, section, chunk type)</span>
+<span id="cb1-4" class="hljs-ln-code"><a href=""></a>→ sentence-transformers embeddings</span>
+<span id="cb1-5" class="hljs-ln-code"><a href=""></a>→ Qdrant vector store</span>
+<span id="cb1-6" class="hljs-ln-code"><a href=""></a></span>
+<span id="cb1-7" class="hljs-ln-code"><a href=""></a>question</span>
+<span id="cb1-8" class="hljs-ln-code"><a href=""></a>→ rewrite (query reformulation with chat history)</span>
+<span id="cb1-9" class="hljs-ln-code"><a href=""></a>→ tool_router  ──── does this need live data? ────┐</span>
+<span id="cb1-10" class="hljs-ln-code"><a href=""></a>                                                   ▼</span>
+<span id="cb1-11" class="hljs-ln-code"><a href=""></a>                               YES → weather_tool (Open-Meteo API)</span>
+<span id="cb1-12" class="hljs-ln-code"><a href=""></a>                                                   │</span>
+<span id="cb1-13" class="hljs-ln-code"><a href=""></a>                               NO ─────────────────┘</span>
+<span id="cb1-14" class="hljs-ln-code"><a href=""></a>→ retrieve (Qdrant + cross-encoder reranking)</span>
+<span id="cb1-15" class="hljs-ln-code"><a href=""></a>→ evidence blocks</span>
+<span id="cb1-16" class="hljs-ln-code"><a href=""></a>→ answer (OpenAI, evidence + tool result as context)</span>
+<span id="cb1-17" class="hljs-ln-code"><a href=""></a>→ cited sources</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="arch-note">
-<p>FastAPI exposes <code>/index</code> and <code>/ask</code>. LangChain structures prompts and chat messages. LangGraph models the answer workflow as explicit nodes.</p>
+<p>FastAPI exposes <code>/index</code> and <code>/ask</code>. The agent decides at runtime whether to call an external tool — the routing decision is made by the LLM itself, not by keyword matching.</p>
+</div>
+</section>
+<section id="live-demo" class="slide level2" data-auto-animate="true">
+<h2 data-id="quarto-animate-title">Live Demo</h2>
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="definition-card">
+<p><strong>Document question</strong></p>
+<p><em>“What are best practices for drip irrigation?”</em></p>
+<p>→ tool router: <strong>NO</strong> → retrieves from agricultural knowledge base → grounded answer with citations</p>
+</div>
+</div><div class="column" style="width:50%;">
+<div class="definition-card">
+<p><strong>Weather-dependent question</strong></p>
+<p><em>“What irrigation should I plan given this week’s forecast?”</em></p>
+<p>→ tool router: <strong>YES</strong> → calls Open-Meteo API (7-day forecast) → answer combines document knowledge + live weather data</p>
+</div>
+</div></div>
+<div class="arch-note">
+<p>The agent uses the LLM to decide which path to take — this is what makes it an agent rather than a fixed pipeline.</p>
 </div>
 </section>
 <section id="results-benchmarks" class="slide level2" data-auto-animate="true">
@@ -303,15 +327,15 @@ Evidence, citations, API</p>
 <p>1.00</p>
 </div>
 <div class="metric-label">
-<p>Recall@5 on the current retrieval benchmark</p>
+<p>Recall@5 on the retrieval benchmark</p>
 </div>
 </div>
 <div class="metric-card">
 <div class="metric-number">
-<p>139</p>
+<p>6</p>
 </div>
 <div class="metric-label">
-<p>Chunks indexed from the sample paper</p>
+<p>LangGraph nodes in the QA agent workflow</p>
 </div>
 </div>
 </div><div class="column" style="width:50%;">
@@ -325,10 +349,10 @@ Evidence, citations, API</p>
 </div>
 <div class="metric-card">
 <div class="metric-number">
-<p>4</p>
+<p>1</p>
 </div>
 <div class="metric-label">
-<p>LangGraph nodes in the QA workflow</p>
+<p>External tool integrated: Open-Meteo weather API</p>
 </div>
 </div>
 </div></div>
@@ -338,21 +362,17 @@ Evidence, citations, API</p>
 <div class="columns">
 <div class="column" style="width:50%;">
 <div class="learned-block fragment">
-<p><strong>Document structure matters</strong><br>
-Technical PDFs are not just text blobs. Preserving section, page, and chunk metadata is what makes grounded answers possible.</p>
+<p><strong>Document structure matters</strong> Preserving section, page, and chunk-type metadata is what makes grounded, traceable answers possible.</p>
 </div>
 <div class="learned-block fragment">
-<p><strong>Retrieval quality matters as much as the LLM</strong><br>
-Vector retrieval gets candidates quickly, but reranking and query rewriting noticeably improve the evidence quality passed to generation.</p>
+<p><strong>Retrieval quality matters as much as the LLM</strong> Query rewriting and cross-encoder reranking noticeably improve evidence quality before generation.</p>
 </div>
 </div><div class="column" style="width:50%;">
 <div class="learned-block fragment">
-<p><strong>Framework boundaries matter</strong><br>
-I used LangChain for prompt orchestration and LangGraph for workflow structure, but kept retrieval and evaluation explicit in application code.</p>
+<p><strong>Agents need explicit routing logic</strong> A fixed pipeline cannot adapt to different question types. Explicit tool-routing nodes make the decision transparent and testable.</p>
 </div>
 <div class="learned-block fragment">
-<p><strong>Evaluation keeps the system honest</strong><br>
-I added retrieval evaluation with <code>recall@5</code> because fluent answers alone are not enough to judge a RAG pipeline.</p>
+<p><strong>Evaluation keeps the system honest</strong> Fluent answers alone are not enough to judge a RAG pipeline — <code>recall@5</code> shows whether the right chunks are actually being retrieved.</p>
 </div>
 </div></div>
 </section>
@@ -363,20 +383,23 @@ I added retrieval evaluation with <code>recall@5</code> because fluent answers a
 <p>✅ Ingestion, indexing, retrieval, grounded QA API</p>
 </div>
 <div class="roadmap-item done">
-<p>✅ Reranking, request-level memory, query rewriting</p>
+<p>✅ Reranking, query rewriting, request-level memory</p>
+</div>
+<div class="roadmap-item done">
+<p>✅ LangGraph agent with weather tool routing</p>
 </div>
 <div class="roadmap-item active">
-<p>🔄 Broader evaluation beyond the current benchmark</p>
+<p>🔄 Expose as an MCP server — any LLM agent can use this RAG as a tool</p>
 </div>
 <div class="roadmap-item">
-<p>⬜ Multi-document benchmarking and comparison</p>
+<p>⬜ Additional tools: crop disease lookup, soil condition APIs</p>
 </div>
 <div class="roadmap-item">
-<p>⬜ Richer LangGraph branching and fallback logic</p>
+<p>⬜ Persistent conversation memory across sessions</p>
 </div>
 </div>
 <div class="cta-block">
-<p>Reliable LLM systems depend as much on retrieval, metadata, and evaluation as on the model itself.</p>
+<p>The same architecture scales to any agricultural knowledge base — swap the documents, extend the tools.</p>
 </div>
 
 </section>

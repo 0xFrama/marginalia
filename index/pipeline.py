@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     store = QdrantStore()
 
-    index_pdf("samples/attention.pdf", store=store)
+    index_pdf("samples/production.pdf", store=store)
 
-    query = "What is Attention?"
+    query = "What's the country that with the hieghest corn yield?"
     print(retrieval(query, store=store))
