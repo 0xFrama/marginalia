@@ -1,3 +1,5 @@
+import os
+
 from fastapi.testclient import TestClient
 
 from api.app import app, get_answerer, get_store
@@ -176,3 +178,94 @@ def test_index_endpoint_returns_indexing_result(monkeypatch):
         "collection_name": "chunks",
     }
     assert calls == [{"pdf_path": "samples/attention.pdf", "store": fake_store}]
+
+
+def test_upload_endpoint_indexes_uploaded_pdf(monkeypatch):
+    calls = []
+
+    def fake_index_pdf(pdf_path: str, store) -> IndexingResult:
+        calls.append({"pdf_path": pdf_path, "store": store})
+        return IndexingResult(
+            source_file="agritech.pdf",
+            chunk_count=82,
+            indexed_count=82,
+            collection_name="chunks",
+        )
+
+    fake_store = object()
+    app.dependency_overrides[get_store] = lambda: fake_store
+    monkeypatch.setattr("api.app.index_pdf", fake_index_pdf)
+    client = TestClient(app)
+
+    pdf_bytes = b"%PDF-1.4 fake pdf content"
+    response = client.post(
+        "/upload",
+        files={"file": ("agritech.pdf", pdf_bytes, "application/pdf")},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "source_file": "agritech.pdf",
+        "chunk_count": 82,
+        "indexed_count": 82,
+        "collection_name": "chunks",
+    }
+    assert len(calls) == 1
+    assert calls[0]["pdf_path"].endswith(".pdf")
+    assert calls[0]["store"] is fake_store
+
+
+def test_upload_endpoint_rejects_non_pdf(monkeypatch):
+    client = TestClient(app)
+
+    response = client.post(
+        "/upload",
+        files={"file": ("document.txt", b"not a pdf", "text/plain")},
+    )
+
+    assert response.status_code == 400
+    assert "PDF" in response.json()["detail"]
+
+
+def test_upload_endpoint_cleans_up_temp_file(monkeypatch):
+    saved_paths = []
+
+    def fake_index_pdf(pdf_path: str, store) -> IndexingResult:
+        saved_paths.append(pdf_path)
+        return IndexingResult(
+            source_file="test.pdf",
+            chunk_count=5,
+            indexed_count=5,
+            collection_name="chunks",
+        )
+
+    fake_store = object()
+    app.dependency_overrides[get_store] = lambda: fake_store
+    monkeypatch.setattr("api.app.index_pdf", fake_index_pdf)
+    client = TestClient(app)
+
+    response = client.post(
+        "/upload",
+        files={"file": ("test.pdf", b"%PDF-1.4", "application/pdf")},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert len(saved_paths) == 1
+    assert not os.path.exists(saved_paths[0])
+
+
+def test_upload_endpoint_rejects_oversized_file(monkeypatch):
+    client = TestClient(app)
+
+    oversized = b"%PDF-1.4" + b"x" * (50 * 1024 * 1024 + 1)
+    response = client.post(
+        "/upload",
+        files={"file": ("big.pdf", oversized, "application/pdf")},
+    )
+
+    assert response.status_code == 413
+    assert "50 MB" in response.json()["detail"]

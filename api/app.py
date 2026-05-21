@@ -1,7 +1,9 @@
+import tempfile
 from functools import lru_cache
+from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 
 from api.schemas import AskRequest, AskResponse, IndexRequest
 from index import QdrantStore
@@ -37,6 +39,32 @@ async def index_document(
     request: IndexRequest, store: QdrantStore = Depends(get_store)
 ) -> IndexingResult:
     return index_pdf(request.pdf_path, store=store)
+
+
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+
+
+@app.post("/upload", response_model=IndexingResult)
+async def upload_and_index(
+    file: UploadFile = File(...),
+    store: QdrantStore = Depends(get_store),
+) -> IndexingResult:
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF.")
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File exceeds the 50 MB limit.")
+    # Use a temp file with a fixed .pdf suffix so index_pdf receives a safe path
+    # that is independent of the (untrusted) upload filename.
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+    try:
+        return index_pdf(str(tmp_path), store=store)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Could not process PDF: {exc}") from exc
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
 
 @app.post("/ask", response_model=AskResponse)
