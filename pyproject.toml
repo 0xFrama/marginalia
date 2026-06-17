@@ -17,6 +17,10 @@ dependencies = [
     "langgraph>=1.2.0",
     "mcp[cli]>=1.27.1",
     "fastembed>=0.4.0",
+    "pydantic-ai>=1.105.0",
+    "sqlglot>=25.0",
+    "sqlalchemy>=2.0",
+    "faker>=30.0",
 ]
 
 [tool.pytest.ini_options]

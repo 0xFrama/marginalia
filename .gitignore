@@ -56,3 +56,6 @@ samples/*.pdf
 # Chroma (local vector DB)
 chroma_db/
 *.sqlite3
+
+# Presentation folder
+presentation/
