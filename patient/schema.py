@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Integer, String, Date
+from sqlalchemy import DateTime, ForeignKey, Integer, Integer, String, Date, Float
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -45,7 +45,7 @@ class Observations(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     patient_id: Mapped[int] = mapped_column(ForeignKey("patients.patient_id"))
     code: Mapped[str] = mapped_column(String(30))
-    value: Mapped[float] = mapped_column(Integer)
+    value: Mapped[float] = mapped_column(Float)
     unit: Mapped[str] = mapped_column(String(30))
     taken_at: Mapped[datetime] = mapped_column(DateTime)
 
