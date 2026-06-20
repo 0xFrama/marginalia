@@ -33,7 +33,7 @@ class Medications(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     patient_id: Mapped[int] = mapped_column(ForeignKey("patients.patient_id"))
-    name: Mapped[str] = mapped_column(String(30))
+    drug_name: Mapped[str] = mapped_column(String(30))
     dose: Mapped[str] = mapped_column(String(30))
     status: Mapped[str] = mapped_column(String(30))
     started_on: Mapped[date] = mapped_column((Date))

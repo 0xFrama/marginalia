@@ -53,7 +53,7 @@ def seed_database(session: Session) -> dict:
     )
     m_db = Medications(
         patient_id=p_diabetic.patient_id,
-        name=random.choice(medications_pool["db"]),
+        drug_name=random.choice(medications_pool["db"]),
         dose="500mg",
         status="Active",
         started_on=date(2024, 1, 5),
@@ -99,7 +99,7 @@ def seed_database(session: Session) -> dict:
     )
     m_htn = Medications(
         patient_id=p_hyper.patient_id,
-        name=random.choice(medications_pool["htn"]),
+        drug_name=random.choice(medications_pool["htn"]),
         dose="20mg",
         status="Active",
         started_on=date(2023, 5, 14),
@@ -143,7 +143,7 @@ def seed_database(session: Session) -> dict:
     )
     m_both = Medications(
         patient_id=p_comorbid.patient_id,
-        name=random.choice(medications_pool["both"]),
+        drug_name=random.choice(medications_pool["both"]),
         dose="10mg",
         status="Active",
         started_on=date(2022, 11, 5),
@@ -226,7 +226,7 @@ def seed_database(session: Session) -> dict:
         session.add(
             Medications(
                 patient_id=patient.patient_id,
-                name=random.choice(medications_pool[scenario]),
+                drug_name=random.choice(medications_pool[scenario]),
                 dose="Standard",
                 status="Active",
                 started_on=fake.date_between(start_date="-2y", end_date="today"),
