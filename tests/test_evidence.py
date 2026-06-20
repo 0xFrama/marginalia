@@ -1,4 +1,5 @@
 from models import Chunk, ChunkType, RetrievalHit
+from models.evidence import Evidence
 from retrieval.evidence import build_evidence_blocks, format_evidence
 
 
@@ -116,3 +117,32 @@ def test_format_evidence_handles_page_ranges_and_missing_section():
 
 def test_format_evidence_returns_empty_string_for_no_blocks():
     assert format_evidence([]) == ""
+
+
+def test_patient_evidence_renders():
+    # A patient block has no page/score fields — it must render via the patient
+    # branch (no crash on the None guideline fields) with its own label/as-of.
+    block = Evidence(
+        citation_id=3,
+        text="HbA1c 6.8%",
+        kind="patient",
+        source_label="labs",
+        as_of="2026-02-10",
+    )
+    formatted = format_evidence([block])
+
+    assert formatted.startswith("[3] labs")
+    assert "as-of 2026-02-10" in formatted
+    assert "HbA1c 6.8%" in formatted
+    # No guideline-only fields should leak into a patient citation.
+    assert "page" not in formatted
+    assert "score" not in formatted
+
+
+def test_patient_evidence_renders_with_missing_optional_fields():
+    # source_label and as_of are optional — rendering must not print "None".
+    block = Evidence(citation_id=4, text="BP 130", kind="patient")
+    formatted = format_evidence([block])
+
+    assert formatted.startswith("[4] Patient record")
+    assert "None" not in formatted

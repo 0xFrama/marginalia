@@ -21,6 +21,13 @@ def format_evidence(blocks: list[EvidenceBlock]) -> str:
     formatted_text = []
 
     for block in blocks:
+        if block.kind == "patient":
+            label = block.source_label or "Patient record"
+            asof = f" · as-of {block.as_of}" if block.as_of else ""
+            formatted_text.append(
+                f"[{block.citation_id}] {label}{asof}\n{block.text}"
+            )
+            continue
         if block.page_start == block.page_end:
             page_label = f"page: {block.page_start}"
         else:
