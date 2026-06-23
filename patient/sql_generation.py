@@ -1,3 +1,13 @@
+import re
+
+
+def _strip_code_fences(text: str) -> str:
+    text = text.strip()
+    text = re.sub(r"^```(?:sql)?\s*", "", text)  # remove opening fence
+    text = re.sub(r"\s*```$", "", text)  # remove closing fence
+    return text.strip()
+
+
 def generate_sql(question, dictionary, patient_id, llm):
     system_prompt = (
         "You are an expert Text-to-SQL translator for a healthcare database.\n"
@@ -24,4 +34,6 @@ def generate_sql(question, dictionary, patient_id, llm):
         f"Generate the exact SQLite query to answer the question above utilizing the target_patient_id parameter."
     )
 
-    return llm.generate(system_prompt, user_prompt)
+    raw = llm.generate(system_prompt, user_prompt)
+
+    return _strip_code_fences(raw)
