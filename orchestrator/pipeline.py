@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 
+from masking.mask import mask
+from masking.identifiers import get_patient_identifiers
+from masking.llm import MaskingLLM
 from models.evidence import Evidence
 from orchestrator.fuse import fuse_evidence
 from orchestrator.guideline_adapter import get_guideline_evidence
@@ -34,20 +37,28 @@ class OrchestratorResult:
 
 
 def answer_question(question, patient_id, engine, llm, retriever, reranker=None):
-    planes = route(question, llm)
+    identifiers = get_patient_identifiers(engine, patient_id)
+    masked_llm = MaskingLLM(llm, identifiers)
+
+    masked_question, _ = mask(question, identifiers)
+
+    planes = route(question, masked_llm)
 
     patient_ev = []
     guideline_ev = []
     if "patient" in planes:
-        patient_ev = get_patient_evidence(question, patient_id, engine, llm)
+        patient_ev = get_patient_evidence(question, patient_id, engine, masked_llm)
     if "guideline" in planes:
-        guideline_ev = get_guideline_evidence(question, retriever, reranker=reranker)
+        guideline_ev = get_guideline_evidence(
+            masked_question, retriever, reranker=reranker
+        )
 
     fused = fuse_evidence(patient_ev, guideline_ev)
     evidence_context = format_evidence(fused)
 
     user_prompt = build_qa_prompt(question, evidence_context)
-    answer_text = llm.generate(SYSTEM_PROMPT, user_prompt)
+
+    answer_text = masked_llm.generate(SYSTEM_PROMPT, user_prompt)
 
     citation_ids = extract_citation_ids(answer_text)
     cited = filter_cited_sources(citation_ids, fused)
