@@ -174,6 +174,8 @@ class GraphOrchestrator:
 
     def _route(self, state: QAState) -> dict:
         planes = route(state["question"], self._masked_llm(state))
+        if "patient" not in planes:
+            planes = ["patient"] + planes
         return {"planes": planes}
 
     def _patient_generate(self, state: QAState):

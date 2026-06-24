@@ -49,6 +49,21 @@ def test_start_pauses_then_resume_completes(db_session):
     assert any(s.kind == "patient" for s in final["result"].sources)
 
 
+def test_patient_plane_always_runs_even_if_router_says_guideline(db_session):
+    # A patient is always in scope in the clinical UI, so the patient plane must
+    # run even when the router classifies the question as guideline-only.
+    session, anchors = db_session
+    engine = session.bind
+    pid = anchors["diabetic"].patient_id
+    llm = FakeLLM(
+        ["guideline", "SELECT patient_id, value FROM v_observations", "HbA1c 6.8 [1]"]
+    )
+    orch = GraphOrchestrator(engine, llm, FakeRetriever())
+    result = orch.answer("What is the recommended HbA1c target?", pid)
+    assert "patient" in result.planes
+    assert any(s.kind == "patient" for s in result.sources)
+
+
 def test_hitl_approve_yields_patient_evidence(db_session):
     session, anchors = db_session
     engine = session.bind

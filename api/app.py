@@ -101,9 +101,6 @@ async def ask(
     )
 
 
-# --- Clinical two-plane assistant (the unified graph orchestrator) ---
-
-
 class ClinicalAskRequest(BaseModel):
     question: str
     patient_id: int
@@ -111,18 +108,12 @@ class ClinicalAskRequest(BaseModel):
 
 class ApproveRequest(BaseModel):
     thread_id: str
-    decision: str  # "approve" | "reject"
+    decision: str
 
 
 @lru_cache(maxsize=1)
 def get_clinical() -> dict:
-    """Build a seeded demo patient DB + one orchestrator, reused across requests.
-
-    A file-backed SQLite DB (not in-memory) so every request thread sees the
-    same committed data. The single GraphOrchestrator keeps its MemorySaver
-    checkpointer, so a paused run survives between /clinical/ask and
-    /clinical/approve.
-    """
+    """Build a seeded demo patient DB and one reusable orchestrator."""
     db_path = os.path.join(tempfile.gettempdir(), "marginalia_demo.db")
     if os.path.exists(db_path):
         os.remove(db_path)
