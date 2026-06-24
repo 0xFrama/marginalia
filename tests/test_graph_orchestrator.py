@@ -30,6 +30,30 @@ class FakeRetriever:
         return [RetrievalHit(query_text=question, chunk=chunk, score=0.9, rank=1)]
 
 
+def test_hitl_approve_yields_patient_evidence(db_session):
+    session, anchors = db_session
+    engine = session.bind
+    pid = anchors["diabetic"].patient_id
+    llm = FakeLLM(
+        ["patient", "SELECT patient_id, value FROM v_observations", "HbA1c 6.8 [1]"]
+    )
+    orch = GraphOrchestrator(engine, llm, FakeRetriever())
+    result = orch.answer("latest HbA1c?", pid, approver=lambda sql: "approve")
+    assert any(s.kind == "patient" for s in result.sources)
+
+
+def test_hitl_reject_runs_no_sql(db_session):
+    session, anchors = db_session
+    engine = session.bind
+    pid = anchors["diabetic"].patient_id
+    llm = FakeLLM(
+        ["patient", "SELECT patient_id, value FROM v_observations", "n/a"]
+    )
+    orch = GraphOrchestrator(engine, llm, FakeRetriever())
+    result = orch.answer("latest HbA1c?", pid, approver=lambda sql: "reject")
+    assert all(s.kind != "patient" for s in result.sources)
+
+
 class SpyLLM:
     """Records every prompt it sees; returns canned replies in order."""
 

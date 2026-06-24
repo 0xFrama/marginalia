@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from index import QdrantStore
 from models import ChatMessage
-from qa import Answerer, GraphAnswerer, OpenAIService
+from qa import Answerer, OpenAIService
 from retrieval import CrossEncoderReranker, Retriever
 
 load_dotenv()
@@ -50,11 +50,6 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional JSON file containing prior chat messages.",
     )
-    parser.add_argument(
-        "--use-graph",
-        action="store_true",
-        help="Use the LangGraph-based answer workflow instead of the direct answerer.",
-    )
     return parser.parse_args()
 
 
@@ -77,10 +72,7 @@ def main() -> None:
     llm_client = OpenAIService()
     reranker = CrossEncoderReranker() if args.rerank else None
     chat_history = load_chat_history(args.history_file)
-    if args.use_graph:
-        answerer = GraphAnswerer(retriever=retriever, llm_client=llm_client)
-    else:
-        answerer = Answerer(retriever=retriever, llm_client=llm_client)
+    answerer = Answerer(retriever=retriever, llm_client=llm_client)
 
     result = answerer.answer(
         args.question,
@@ -105,9 +97,10 @@ def main() -> None:
         section_label = (
             f", section: {source.section_title}" if source.section_title else ""
         )
+        rerank_label = f", rerank_score: {round(source.rerank_score, 3)}" if source.rerank_score is not None else ""
         print(
             f"[{source.citation_id}] {source.source_file}, {page_label}"
-            f"{section_label}, score: {round(source.score, 3)}"
+            f"{section_label}, score: {round(source.score, 3)}{rerank_label}"
         )
     print("\nRetrieved evidence:")
     for source in result.sources:
@@ -119,9 +112,10 @@ def main() -> None:
         section_label = (
             f", section: {source.section_title}" if source.section_title else ""
         )
+        rerank_label = f", rerank_score: {round(source.rerank_score, 3)}" if source.rerank_score is not None else ""
         print(
             f"[{source.citation_id}] {source.source_file}, {page_label}"
-            f"{section_label}, score: {round(source.score, 3)}"
+            f"{section_label}, score: {round(source.score, 3)}{rerank_label}"
         )
 
 
