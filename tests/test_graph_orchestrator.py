@@ -30,6 +30,25 @@ class FakeRetriever:
         return [RetrievalHit(query_text=question, chunk=chunk, score=0.9, rank=1)]
 
 
+def test_start_pauses_then_resume_completes(db_session):
+    session, anchors = db_session
+    engine = session.bind
+    pid = anchors["diabetic"].patient_id
+    llm = FakeLLM(
+        ["patient", "SELECT patient_id, value FROM v_observations", "HbA1c 6.8 [1]"]
+    )
+    orch = GraphOrchestrator(engine, llm, FakeRetriever())
+
+    step = orch.start("latest HbA1c?", pid)
+    assert step["status"] == "awaiting_approval"
+    assert "SELECT" in step["sql"]
+    assert step["thread_id"]
+
+    final = orch.resume(step["thread_id"], "approve")
+    assert final["status"] == "done"
+    assert any(s.kind == "patient" for s in final["result"].sources)
+
+
 def test_hitl_approve_yields_patient_evidence(db_session):
     session, anchors = db_session
     engine = session.bind

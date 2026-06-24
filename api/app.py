@@ -1,9 +1,14 @@
+import os
 import tempfile
 from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from api.schemas import AskRequest, AskResponse, IndexRequest
 from index import QdrantStore
@@ -11,10 +16,16 @@ from qa import Answerer, OpenAIService
 from retrieval import CrossEncoderReranker, Retriever
 from models import IndexingResult
 from index.pipeline import index_pdf
+from orchestrator.graph import GraphOrchestrator
+from patient.db import create_all
+from patient.seed import seed_database
+from patient.views import create_views
 
 load_dotenv()
 
 app = FastAPI()
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @lru_cache(maxsize=1)
@@ -60,7 +71,7 @@ async def upload_and_index(
         tmp.write(content)
         tmp_path = Path(tmp.name)
     try:
-        return index_pdf(str(tmp_path), store=store)
+        return index_pdf(str(tmp_path), store=store, source_name=file.filename)
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not process PDF: {exc}") from exc
     finally:
@@ -88,3 +99,98 @@ async def ask(
         evidence_context=result.evidence,
         cited_sources=result.cited_sources,
     )
+
+
+# --- Clinical two-plane assistant (the unified graph orchestrator) ---
+
+
+class ClinicalAskRequest(BaseModel):
+    question: str
+    patient_id: int
+
+
+class ApproveRequest(BaseModel):
+    thread_id: str
+    decision: str  # "approve" | "reject"
+
+
+@lru_cache(maxsize=1)
+def get_clinical() -> dict:
+    """Build a seeded demo patient DB + one orchestrator, reused across requests.
+
+    A file-backed SQLite DB (not in-memory) so every request thread sees the
+    same committed data. The single GraphOrchestrator keeps its MemorySaver
+    checkpointer, so a paused run survives between /clinical/ask and
+    /clinical/approve.
+    """
+    db_path = os.path.join(tempfile.gettempdir(), "marginalia_demo.db")
+    if os.path.exists(db_path):
+        os.remove(db_path)
+    engine = create_engine(
+        f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
+    )
+    create_all(engine)
+    with Session(engine) as session:
+        anchors = seed_database(session)
+        session.commit()
+        patients = [
+            {"patient_id": anchor.patient_id, "name": anchor.name, "key": key}
+            for key, anchor in anchors.items()
+        ]
+    create_views(engine)
+    orch = GraphOrchestrator(engine, OpenAIService(), Retriever(QdrantStore()))
+    patients.sort(key=lambda p: p["patient_id"])
+    return {"orch": orch, "patients": patients}
+
+
+def _serialize_source(source) -> dict:
+    return {
+        "citation_id": source.citation_id,
+        "kind": source.kind,
+        "text": source.text,
+        "source_file": getattr(source, "source_file", None),
+        "page_start": getattr(source, "page_start", None),
+        "sql": getattr(source, "sql", None),
+    }
+
+
+def _serialize_step(step: dict) -> dict:
+    if step["status"] == "awaiting_approval":
+        return {
+            "status": "awaiting_approval",
+            "thread_id": step["thread_id"],
+            "sql": step["sql"],
+        }
+    result = step["result"]
+    return {
+        "status": "done",
+        "thread_id": step["thread_id"],
+        "answer": result.answer,
+        "planes": result.planes,
+        "sources": [_serialize_source(s) for s in result.sources],
+        "cited": [s.citation_id for s in result.cited_sources],
+    }
+
+
+@app.get("/")
+async def index_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/patients")
+async def list_patients() -> list[dict]:
+    return get_clinical()["patients"]
+
+
+@app.post("/clinical/ask")
+async def clinical_ask(request: ClinicalAskRequest) -> dict:
+    orchestrator = get_clinical()["orch"]
+    step = orchestrator.start(request.question, request.patient_id)
+    return _serialize_step(step)
+
+
+@app.post("/clinical/approve")
+async def clinical_approve(request: ApproveRequest) -> dict:
+    orchestrator = get_clinical()["orch"]
+    step = orchestrator.resume(request.thread_id, request.decision)
+    return _serialize_step(step)

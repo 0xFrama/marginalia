@@ -132,6 +132,37 @@ class GraphOrchestrator:
             cited_sources=state.get("cited_sources", []),
         )
 
+    def _step_result(self, thread_id, state) -> dict:
+        if "__interrupt__" in state:
+            return {
+                "status": "awaiting_approval",
+                "thread_id": thread_id,
+                "sql": state["__interrupt__"][0].value["sql"],
+            }
+        return {
+            "status": "done",
+            "thread_id": thread_id,
+            "result": OrchestratorResult(
+                answer=state.get("answer", ""),
+                planes=state.get("planes", []),
+                sources=state.get("fused", []),
+                cited_sources=state.get("cited_sources", []),
+            ),
+        }
+
+    def start(self, question, patient_id) -> dict:
+        thread_id = str(uuid4())
+        config = {"configurable": {"thread_id": thread_id}}
+        state = self.graph.invoke(
+            {"question": question, "patient_id": patient_id}, config
+        )
+        return self._step_result(thread_id, state)
+
+    def resume(self, thread_id, decision) -> dict:
+        config = {"configurable": {"thread_id": thread_id}}
+        state = self.graph.invoke(Command(resume=decision), config)
+        return self._step_result(thread_id, state)
+
     def _masked_llm(self, state: QAState) -> MaskingLLM:
         identifiers = get_patient_identifiers(self.engine, state["patient_id"])
         return MaskingLLM(self.llm, identifiers)
